@@ -4,7 +4,7 @@
 #include <linux/uaccess.h>
 #include <linux/init.h>
 #include <linux/cdev.h>
- 
+
 #define DEVNAME "chardev"
 
 static struct cdev hcdev;
@@ -18,7 +18,7 @@ static ssize_t myread(struct file *file, char __user *ubuf, size_t count, loff_t
 {
 	int len = strlen(hello_str);
 	printk(KERN_INFO "1.chardev... Got read %ld bytes of %u from device: %s, ppos=%lld\n", count, len, DEVNAME, *ppos);
-	if (*ppos >= strlen(hello_str)) {
+	if (*ppos >= len) {
 		printk( KERN_INFO "1.chardev... EOF, ppos: %lld\n", *ppos);
 		return *ppos = 0;  // EOF
 	}
@@ -29,10 +29,32 @@ static ssize_t myread(struct file *file, char __user *ubuf, size_t count, loff_t
 	return nbytes;
 }
 
+static int device_open = 0;
+
+static int myopen(struct inode *inode, struct file *file)
+{
+	if (device_open) {
+		printk(KERN_INFO "1.chardev... Error - BUSY device : %s\n", DEVNAME);
+		return -EBUSY;
+	}
+	device_open++;
+	printk(KERN_INFO "1.chardev... Openning device : %s\n", DEVNAME);
+	return 0;
+}
+
+static int myrelease(struct inode *inode, struct file *file)
+{
+	device_open--;
+	printk(KERN_INFO "1.chardev... Releasing device : %s\n", DEVNAME);
+	return 0;
+}
+
 static const struct file_operations mycdev_ops =
 {
 	.owner = THIS_MODULE,
-	.read = myread
+	.read = myread,
+	.open = myopen,
+	.release = myrelease
 };
 
 static int __init init_chardev(void)
