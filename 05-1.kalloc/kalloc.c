@@ -2,6 +2,22 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 
+static void test_atomic(void) {
+	size_t i;
+	for (i=1; i < 0xFFFFFFFF; i=i<<1) {
+		char * ptr;
+		ptr = kmalloc(i, GFP_ATOMIC);
+		if (! ptr) {
+			printk(KERN_INFO "kmalloc(ATOMIC): unable to allocate %ld bytes\n",i);
+			return;
+		} else {
+			//printk(KERN_INFO "kmalloc(ATOMIC): allocated %ld bytes\n",i);
+			kfree(ptr);
+		}
+	}
+	return;
+}
+
 static void test_kmalloc(void) {
 	size_t i;
 	for (i=1; i < 0xFFFFFFFF; i=i<<1) {
@@ -36,7 +52,8 @@ static void test_vmalloc(void) {
 
 static int __init mod_init( void ) {
 	printk(KERN_INFO "05-1.kalloc... Module load.\n");
-        test_kmalloc();
+        test_atomic();
+	test_kmalloc();
 	test_vmalloc();
         return 0;
 }

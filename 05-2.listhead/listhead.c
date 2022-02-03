@@ -15,7 +15,7 @@ static void test_lists(void)
                 item = kmalloc(sizeof(*item), GFP_KERNEL);
                 if (!item) goto out;
                 item->n = i;
-                list_add(&(item->list), &list);
+                list_add_tail(&(item->list), &list);
         }
         list_for_each(iter, &list) {
                 item = list_entry(iter, struct data, list);
@@ -34,4 +34,8 @@ static int __init mod_init( void ) {
         test_lists();
         return 0;
 }
-module_init( mod_init );
+static void __exit mod_cleanup(void) {
+	return;
+}
+module_init(mod_init);
+module_exit(mod_cleanup);
