@@ -2,7 +2,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 
-#define SHARED_IRQ 17
+#define SHARED_IRQ 1
 
 static int irq = SHARED_IRQ, my_dev_id, irq_counter = 0;
 

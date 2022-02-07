@@ -14,7 +14,7 @@ module_param( num, int, 0 );
 
 static irqreturn_t handler( int irq, void *id ) {
 	cycles_t cycles = get_cycles();
-	printk( KERN_INFO "%010lld : irq=%d - handler #%d\n", cycles, irq, (int)id );
+	printk( KERN_INFO "06-2 - %010lld : irq=%d - handler #%d\n", cycles, irq, (int)id );
 	return IRQ_NONE;
 }
 
