@@ -9,6 +9,8 @@ MODULE_LICENSE( "GPL" );
 
 static int irq = SHARED_IRQ, num = 2;
 
+static u32 j1, j2;
+
 module_param( irq, int, 0 );
 module_param( num, int, 0 );
 
@@ -27,6 +29,7 @@ int init_module( void ) {
 		sprintf( dev[ i ], "serial_%02d", i + 1 );
 		if( request_irq( irq, handler, IRQF_SHARED, dev[ i ], (void*)( i + 1 ) ) ) return -1;
 	}
+	j1 = jiffies;
 	return 0;
 }
 
@@ -36,4 +39,6 @@ void cleanup_module( void ) {
 		synchronize_irq( irq );
 		free_irq( irq, (void*)( i + 1 ) );
 	}
+	j2 = jiffies;
+	printk(KERN_INFO "06-2. Unload, working for %d\n", j2-j1);
 }
