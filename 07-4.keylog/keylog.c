@@ -11,7 +11,6 @@
 #define I8042_K_IRQ 1
 
 #define I8042_DATA_REG 0x60
-#define I8042_STATUS_REG 0x64
 
 #define RELEASED_MASK 0x80
 
@@ -105,12 +104,13 @@ static irqreturn_t my_interrupt( int irq, void *dev_id ) {
 }
 
 static int __init my_init( void ) {
+	unsigned long flags;
 	// Инициализация спин-блокировки
 	spin_lock_init(&k_data.lock);
-	// Старт блокировки
-	spin_lock(&k_data.lock);
+	// Старт блокировки c отключением прерываний
+	spin_lock_irqsave(&k_data.lock,flags);
 	reset_buffer(&k_data);  // критичная секция
-	spin_unlock(&k_data.lock);
+	spin_unlock_irqrestore(&k_data.lock,flags);
 	// Разблокировка
 	if ( request_irq( irq, my_interrupt, IRQF_SHARED, "my_interrupt", &k_data ) )
 		return -1;
@@ -119,23 +119,19 @@ static int __init my_init( void ) {
 		printk( KERN_INFO "07.4 - Cannot register I/O port region 0x%x\n",I8042_DATA_REG);
 	else
 		printk( KERN_INFO "07.4 - I/O Port region 0x%x registered\n", I8042_DATA_REG);
-	if (request_region(I8042_STATUS_REG,1,MODULE_NAME) == NULL)
-		printk( KERN_INFO "07.4 - Cannot register I/O port region 0x%x\n",I8042_STATUS_REG);
-	else
-		printk( KERN_INFO "07.4 - I/O Port region 0x%x registered\n",I8042_STATUS_REG);
 	return 0;
 }
 
 static void __exit my_exit( void ) {
+	unsigned long flags;
 	synchronize_irq( irq );
 	free_irq( irq, &k_data );
 	release_region(I8042_DATA_REG,1);
-	release_region(I8042_STATUS_REG,1);
 	printk( KERN_INFO "07.4 - Successfully unloading, irq_counter = %d\n", irq_counter );
-	spin_lock(&k_data.lock); // Начало критической секции
+	spin_lock_irqsave(&k_data.lock,flags); // Начало критической секции
 	k_data.buf[k_data.count]=0;
 	printk (KERN_INFO "07-4 - Buffer: [%ld] %s",k_data.count,k_data.buf);
-	spin_unlock(&k_data.lock);
+	spin_unlock_irqrestore(&k_data.lock,flags);
 }
 module_init( my_init );
 module_exit( my_exit );

@@ -91,17 +91,18 @@ static void flush_data( struct work_struct *work ) {
 	char ch;
 	char *buffer;
 	int i;
+	unsigned long flags;
 	struct keylog_data *kdata = container_of(work, struct keylog_data, workq);
 	printk (KERN_INFO "07-5 - In Workqueue. Flushing\n");
 	buffer = kmalloc(kdata->count,GFP_KERNEL);
 	i=0;
 	// Включаем блокировку
-	spin_lock(&kdata->lock);
+	spin_lock_irqsave(&kdata->lock,flags);
 	while (get_char(&ch, kdata)) {// критическая секция
 		*(buffer+i)=ch;
 		i++;
 	}
-	spin_unlock(&kdata->lock); // выходим из секции
+	spin_unlock_irqrestore(&kdata->lock,flags); // выходим из секции
 	printk (KERN_INFO "07-5 - Buffer: [%ld] %s\n",i,buffer);
 	kfree(buffer);
 	return;
@@ -133,12 +134,13 @@ static irqreturn_t my_interrupt( int irq, void *dev_id ) {
 }
 
 static int __init my_init( void ) {
+	unsigned long flags;
         // Инициализация спин-блокировки
         spin_lock_init(&k_data.lock);
         // Старт блокировки
-        spin_lock(&k_data.lock);
+        spin_lock_irqsave(&k_data.lock,flags);
         reset_buffer(&k_data);  // критичная секция
-        spin_unlock(&k_data.lock);
+        spin_unlock_irqrestore(&k_data.lock,flags);
 	// Разблокировка
 	if ( request_irq( irq, my_interrupt, IRQF_SHARED, "my_interrupt", &k_data ) )
 		return -1;
@@ -148,14 +150,15 @@ static int __init my_init( void ) {
 }
 
 static void __exit my_exit( void ) {
+	unsigned long flags;
 	synchronize_irq( irq );
 	free_irq( irq, &k_data );
 	printk( KERN_INFO "07.5 - Successfully unloading, irq_counter = %d\n", irq_counter );
 	flush_scheduled_work();
-	spin_lock(&k_data.lock); // Начало критической секции
+	spin_lock_irqsave(&k_data.lock,flags); // Начало критической секции
 	k_data.buf[k_data.count]=0;
 	printk (KERN_INFO "07-5 - Buffer: [%ld] %s\n",k_data.count,k_data.buf);
-	spin_unlock(&k_data.lock);
+	spin_unlock_irqrestore(&k_data.lock,flags);
 }
 module_init( my_init );
 module_exit( my_exit );

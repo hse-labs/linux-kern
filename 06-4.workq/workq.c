@@ -10,16 +10,16 @@ module_param( works, int, 0 );
 static struct workqueue_struct *my_wq;
 
 typedef struct {
-	struct work_struct my_work;
 	int id;
 	u32 j;
 	cycles_t cycles;
+	struct work_struct my_work;
 } my_work_t;
 
 static void my_wq_function( struct work_struct *work ) {
 	u32 j = jiffies;
 	cycles_t cycles = get_cycles();
-	my_work_t *wrk = (my_work_t *)work;
+	my_work_t *wrk = container_of(work,my_work_t,my_work);
 	printk( "06-4 - #%d : %010lld [%05d] => %010lld [%05d] = %06lu : context %d\n", \
 		wrk->id, (long long unsigned)wrk->cycles, wrk->j, \
 		(long long unsigned)cycles, j, \
@@ -34,11 +34,11 @@ int init_module( void ) {
 		for( n = 0; n < works; n++ ) {
 			my_work_t *work = (my_work_t*)kmalloc( sizeof(my_work_t), GFP_KERNEL );
 			if( work ) {
-				INIT_WORK( (struct work_struct *)work, my_wq_function );
+				INIT_WORK( &work->my_work, my_wq_function );
 				work->id = n;
 				work->j = jiffies;
 				work->cycles = get_cycles();
-				ret = queue_work( my_wq, (struct work_struct*)work );
+				ret = queue_work( my_wq, &work->my_work );
 				if( !ret ) return -EPERM;
 			}
 			else return -ENOMEM;
