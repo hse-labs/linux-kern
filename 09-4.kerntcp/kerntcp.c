@@ -10,8 +10,8 @@
 MODULE_LICENSE("GPL");
 
 #define MY_TCP_PORT	50000
-#define LISTEN_BACKLOG	5  // размер очереди входящих соединений
-#define THREAD_NUM	3
+#define LISTEN_BACKLOG	20  // размер очереди входящих соединений
+#define THREAD_NUM	20
 
 static struct socket *sock;	// прослушивающий (серверный) сокет
 unsigned int counter;		// счетчик подключений
@@ -51,7 +51,7 @@ int thr_accept_sock(void *data) {
 		mutex_unlock(&mtx_socket);
 		if (err < 0) {
 			sock_release(new_sock);
-			msleep(100); // пассивное ожидание 100 мс
+			msleep(1); // пассивное ожидание 100 мс
 			continue;
 		}
 		mutex_lock(&mtx_counter);
